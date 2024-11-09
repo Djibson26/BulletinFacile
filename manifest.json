@@ -2,7 +2,7 @@
   "name": "BulletinFacile",
   "short_name": "BF",
   "description": "Creation automatique des bulletins de note",
-  "start_url": "/https://djibson26.github.io/BulletinFacile/",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",
