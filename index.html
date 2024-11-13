@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestion des Classes et Bulletins</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <style>
@@ -281,11 +280,12 @@
                 height: 30px;
                 border: 1px solid #ccc;
                 border-radius: var(--border-radius);
-            }
-    
         
+        
+            }
             
-             #add-subject-form button {
+             #add-subject-form button 
+           {
                  width: 120px;
                  margin-left: 0px;
                  font-size: 13px;
@@ -303,11 +303,8 @@
              #add-class-form button{
                  font-size: 10px;
              }
-        }
-      
-        
            
-        
+        }
     </style>
 </head>
 <body>
@@ -333,9 +330,9 @@
         <section id="calcul-notes">
             <div class="controls">
                 <select id="trimestre">
-                    <option value="1">1er trimestre</option>
-                    <option value="2">2e trimestre</option>
-                    <option value="3">3e trimestre</option>
+                    <option value="1er trimestre">1er trimestre</option>
+                    <option value="2e trimestre">2e trimestre</option>
+                    <option value="3e trimestre">3e trimestre</option>
                 </select>
                 <button id="add-student" class="styled-button"><i class="fas fa-user-plus"></i> Ajouter un élève</button>
             </div>
@@ -361,20 +358,6 @@
     <div id="loading-overlay" class="hidden">
         <div class="spinner"></div>
     </div>
-
-    <script>
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.register('/service-worker.js')
-            .then((registration) => {
-              console.log('Service Worker registered with scope:', registration.scope);
-            })
-            .catch((error) => {
-              console.error('Service Worker registration failed:', error);
-            });
-        }
-    </script>
-      
-
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.28.5/docxtemplater.js"></script>
     <script src="https://unpkg.com/pizzip@3.1.1/dist/pizzip.js"></script>
@@ -687,7 +670,6 @@
             }
         }
 
-
         function generateBulletins() {
             if (!currentClass) {
                 showToast("Veuillez d'abord sélectionner une classe.", 'error');
@@ -708,66 +690,64 @@
 
             setTimeout(() => {
                 try {
-                    let successCount = 0;
-                    let errorCount = 0;
-
-                    currentClass.students.forEach(student => {
-                        try {
-                            const zip = new PizZip(templateContent);
-                            const doc = new window.docxtemplater().loadZip(zip);
-                            
-                            const data = {
-                                name: student.name,
-                                firstname:student.firstname,
-                                className: currentClass.name,
-                                sexe: student.sexe,
-                                trimester: currentTrimester,
-                                subjects: currentClass.subjects.map(subject => {
-                                    const grade = student.grades[subject.name] || { controlNote: 0, examNote: 0, average: 0, appreciation: '' };
-                                    return {
-                                        name: subject.name,
-                                        controlNote: grade.controlNote,
-                                        examNote: grade.examNote,
-                                        average: calculateSubjectAverage(grade).toFixed(2),
-                                        coefficient: subject.coefficient,
-                                        appreciation: grade.appreciation
-                                    };
-                                }),
-                                overallAverage: calculateOverallAverage(student).toFixed(2),
-                                ranking: calculateRanking(student)
+                    const zip = new PizZip(templateContent);
+                    const doc = new window.docxtemplater().loadZip(zip);
+                    
+                    // Calculer la meilleure note et la plus faible note de la classe
+                    const allAverages = currentClass.students.map(student => calculateOverallAverage(student));
+                    const bestClassGrade = Math.max(...allAverages).toFixed(2);
+                    const worstClassGrade = Math.min(...allAverages).toFixed(2);
+                    
+                    const allStudentData = currentClass.students.map(student => ({
+                        name: student.name,
+                        firstname: student.firstname,
+                        className: currentClass.name,
+                        classSize: currentClass.students.length,
+                        bestClassGrade: bestClassGrade,
+                        worstClassGrade: worstClassGrade,
+                        sexe: student.sexe,
+                        trimester: currentTrimester,
+                        subjects: currentClass.subjects.map(subject => {
+                            const grade = student.grades[subject.name] || { controlNote: 0, examNote: 0, average: 0, appreciation: '' };
+                            return {
+                                name: subject.name,
+                                controlNote: grade.controlNote,
+                                examNote: grade.examNote,
+                                average: calculateSubjectAverage(grade).toFixed(2),
+                                coefficient: subject.coefficient,
+                                appreciation: grade.appreciation
                             };
-                            
-                            doc.setData(data);
-                            doc.render();
-                            
-                            const out = doc.getZip().generate({
-                                type: "blob",
-                                mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                            });
-                            
-                            saveAs(out, `Bulletin_${student.name}_${currentClass.name}_Trimestre${currentTrimester}.docx`);
-                            successCount++;
-                        } catch (error) {
-                            console.error(`Erreur lors de la génération du bulletin pour ${student.name}:`, error);
-                            errorCount++;
-                        }
-                    });
+                        }),
+                        overallAverage: calculateOverallAverage(student).toFixed(2),
+                        ranking: calculateRanking(student)
+                    }));
 
-                    if (successCount > 0) {
-                        showToast(`${successCount} bulletin(s) généré(s) avec succès.`, 'success');
-                    }
-                    if (errorCount > 0) {
-                        showToast(`Erreur lors de la génération de ${errorCount} bulletin(s).`, 'error');
-                    }
+                    doc.setData({
+                        students: allStudentData,
+                        className: currentClass.name,
+                        classSize: currentClass.students.length,
+                        bestClassGrade: bestClassGrade,
+                        worstClassGrade: worstClassGrade,
+                        trimester: currentTrimester
+                    });
+                    
+                    doc.render();
+                    
+                    const out = doc.getZip().generate({
+                        type: "blob",
+                        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    });
+                    
+                    saveAs(out, `Bulletins_${currentClass.name}_Trimestre${currentTrimester}.docx`);
+                    showToast(`Bulletins générés avec succès pour ${currentClass.students.length} élèves.`, 'success');
                 } catch (error) {
-                    console.error('Erreur générale lors de la génération des bulletins:', error);
+                    console.error('Erreur lors de la génération des bulletins:', error);
                     showToast("Erreur lors de la génération des bulletins.", 'error');
                 } finally {
                     hideLoading();
                 }
             }, 1000); // Simule un délai pour montrer le spinner
         }
-
         function saveAs(blob, filename) {
             if (window.navigator && window.navigator.msSaveOrOpenBlob) {
                 window.navigator.msSaveOrOpenBlob(blob, filename);
