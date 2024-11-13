@@ -787,6 +787,12 @@
 
         function saveGeneratedFile(blob, filename) {
             generatedFile = new File([blob], filename, { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const dataUrl = e.target.result;
+                openFileInWebView(dataUrl, filename);
+            };
+            reader.readAsDataURL(generatedFile);
         }
 
         function updateFilePreview(filename) {
@@ -796,15 +802,41 @@
 
         function downloadGeneratedFile() {
             if (generatedFile) {
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(generatedFile);
-                link.download = generatedFile.name;
-                link.click();
-                URL.revokeObjectURL(link.href);
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const dataUrl = e.target.result;
+                    const link = document.createElement('a');
+                    link.href = dataUrl;
+                    link.download = generatedFile.name;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                };
+                reader.readAsDataURL(generatedFile);
             } else {
                 showToast("Aucun fichier n'a été généré.", 'error');
             }
         }
+
+        function openFileInWebView(dataUrl, fileName) {
+            // Check if running in WebView
+            if (window.AndroidInterface) {
+                // Android WebView
+                window.AndroidInterface.openFile(dataUrl, fileName);
+            } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.openFile) {
+                // iOS WebView
+                window.webkit.messageHandlers.openFile.postMessage({dataUrl: dataUrl, fileName: fileName});
+            } else {
+                // Web browser
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
 
         function showLoading() {
             loadingOverlay.classList.remove('hidden');
