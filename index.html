@@ -135,12 +135,11 @@
             align-items: center;
             justify-content: center;
         }
-          .delete-subject{
-               background-color: #ff4136;
-               color: white;
-              
-              
-               }
+
+        .delete-subject {
+            background-color: #ff4136;
+            color: white;
+        }
 
         .delete-student:hover, .delete-subject:hover, .delete-class:hover {
             background-color: #ff7066;
@@ -200,16 +199,16 @@
             color: white;
         }
 
-         #add-subject-form input, .subject-coefficient, .subject-name {
-                width: 100%;
-                height: 30px;
-                border: 1px solid #ccc;
-                border-radius: var(--border-radius);
+        #add-subject-form input, .subject-coefficient, .subject-name {
+            width: 100%;
+            height: 30px;
+            border: 1px solid #ccc;
+            border-radius: var(--border-radius);
         }
-          #add-subject-form {
-                align-items: center;  
-              
-          }
+
+        #add-subject-form {
+            align-items: center;  
+        }
 
         .styled-button {
             background-color: var(--primary-color);
@@ -234,6 +233,34 @@
             border: 1px solid #ccc;
             border-radius: var(--border-radius);
             background-color: white;
+        }
+
+        #file-preview {
+            margin-top: 2rem;
+            padding: 1rem;
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #file-preview h3 {
+            margin-bottom: 1rem;
+        }
+
+        #file-preview .file-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        #file-preview .file-icon {
+            font-size: 2rem;
+            color: var(--primary-color);
+        }
+
+        #file-preview .download-btn {
+            margin-top: 1rem;
         }
 
         @media (max-width: 768px) {
@@ -270,27 +297,24 @@
             input[type="number"] {
                 width: 35px;
             }
-            #add-subject-form input subject-name {
-                
-               width: 35px;
+
+            #add-subject-form input.subject-name {
+                width: 35px;
                 height: 50px;
             }
-             #add-subject-form input, .subject-coefficient, .subject-name {
+
+            #add-subject-form input, .subject-coefficient, .subject-name {
                 width: 100%;
                 height: 30px;
                 border: 1px solid #ccc;
                 border-radius: var(--border-radius);
-        
-        
             }
             
-             #add-subject-form button 
-           {
-                 width: 120px;
-                 margin-left: 0px;
-                 font-size: 13px;
-                        
-             }
+            #add-subject-form button {
+                width: 120px;
+                margin-left: 0px;
+                font-size: 13px;
+            }
             
             #add-subject-form {
                 display: flex;
@@ -300,10 +324,9 @@
                 gap: 1rem;
             }
             
-             #add-class-form button{
-                 font-size: 10px;
-             }
-           
+            #add-class-form button {
+                font-size: 10px;
+            }
         }
     </style>
 </head>
@@ -319,7 +342,7 @@
 
     <main>
         <section id="home" class="active">
-            <h2>Création des  Classes</h2>
+            <h2>Création des Classes</h2>
             <form id="add-class-form">
                 <input type="text" id="class-name" placeholder="Nom de la classe (ex: 10ème année)" required>
                 <button type="submit" class="styled-button"><i class="fas fa-plus"></i> Ajouter une classe</button>
@@ -337,10 +360,9 @@
                 <button id="add-student" class="styled-button"><i class="fas fa-user-plus"></i> Ajouter un élève</button>
             </div>
             <form id="add-subject-form">
-                <input type="text" id="subject-name" placeholder=" Nom de la matière" required>
+                <input type="text" id="subject-name" placeholder="Nom de la matière" required>
                 <input type="number" id="subject-coefficient" placeholder="Coefficient" min="1" required>
-             
-  <button type="submit" class="styled-button"><i class="fas fa-book-open"></i> + une matière</button>
+                <button type="submit" class="styled-button"><i class="fas fa-book-open"></i> + une matière</button>
             </form>
             <div id="students-container"></div>
         </section>
@@ -352,6 +374,15 @@
             </div>
             <div id="template-mapping"></div>
             <button id="generate-bulletins" class="styled-button" style="margin-top: 1rem;"><i class="fas fa-file-export"></i> Générer les bulletins</button>
+            
+            <div id="file-preview" style="display: none;">
+                <h3>Fichier généré</h3>
+                <div class="file-info">
+                    <i class="fas fa-file-word file-icon"></i>
+                    <span id="file-name"></span>
+                </div>
+                <button id="download-file" class="styled-button download-btn"><i class="fas fa-download"></i> Télécharger</button>
+            </div>
         </section>
     </main>
 
@@ -368,8 +399,9 @@
         // Données globales
         let classes = JSON.parse(localStorage.getItem('classes')) || [];
         let currentClass = null;
-        let currentTrimester = '1';
+        let currentTrimester = '1er trimestre';
         let templateContent = null;
+        let generatedFile = null;
 
         // Éléments DOM
         const homeBtn = document.getElementById('home-btn');
@@ -387,6 +419,9 @@
         const templateUpload = document.getElementById('template-upload');
         const generateBulletinsBtn = document.getElementById('generate-bulletins');
         const loadingOverlay = document.getElementById('loading-overlay');
+        const filePreview = document.getElementById('file-preview');
+        const fileName = document.getElementById('file-name');
+        const downloadFileBtn = document.getElementById('download-file');
 
         // Gestionnaires d'événements
         homeBtn.addEventListener('click', () => switchSection(homeSection));
@@ -401,6 +436,7 @@
         addClassForm.addEventListener('submit', addClass);
         templateUpload.addEventListener('change', handleTemplateUpload);
         generateBulletinsBtn.addEventListener('click', generateBulletins);
+        downloadFileBtn.addEventListener('click', downloadGeneratedFile);
 
         // Fonctions
         function switchSection(section) {
@@ -462,7 +498,7 @@
                 classes = classes.filter(c => c.id !== id);
                 if (currentClass && currentClass.id === id) {
                     currentClass = null;
-                    calculNotesBtn.style.display  = 'none';
+                    calculNotesBtn.style.display = 'none';
                     generationBulletinBtn.style.display = 'none';
                     switchSection(homeSection);
                 }
@@ -477,10 +513,10 @@
                 showToast("Veuillez d'abord sélectionner une classe.", 'error');
                 return;
             }
-            const name = prompt("Prenom de l'élève :");
-            const firstname = prompt("Nom de l'élève :" );
+            const name = prompt("Prénom de l'élève :");
+            const firstname = prompt("Nom de l'élève :");
             const sexe = prompt("Sexe de l'élève");
-            if (name,firstname,sexe) {
+            if (name && firstname && sexe) {
                 const student = {
                     id: Date.now(),
                     name,
@@ -500,7 +536,7 @@
                 saveClasses();
                 renderStudents();
                 renderClasses(); // Update the student count on the home page
-                showToast(`L'élève ${name } ${firstname } a été ajouté avec succès.`, 'success');
+                showToast(`L'élève ${name} ${firstname} a été ajouté avec succès.`, 'success');
             }
         }
 
@@ -547,8 +583,8 @@
                 card.className = 'student-card';
                 card.innerHTML = `
                     <button class="delete-student" onclick="deleteStudent(${student.id})"><i class="fas fa-trash"></i></button>
-                    <h2>${student.name} ${student.firstname}  </h2>
-<h3>Sexe: ${student.sexe}</h3>
+                    <h2>${student.name} ${student.firstname}</h2>
+                    <h3>Sexe: ${student.sexe}</h3>
                     <table>
                         <tr>
                             <th>Matière</th>
@@ -576,7 +612,6 @@
                                             <option value="PASSABLE" ${grade.appreciation === 'PASSABLE' ? 'selected' : ''}>PASSABLE</option>
                                             <option value="INSUFFISANT" ${grade.appreciation === 'INSUFFISANT' ? 'selected' : ''}>INSUFFISANT</option>
                                         </select>
-                                       
                                     </td>
                                     <td><button class="delete-subject" onclick="deleteSubject('${subject.name}')"><i class="fas fa-trash"></i></button></td>
                                 </tr>
@@ -585,7 +620,6 @@
                     </table>
                     <p>Moyenne générale : ${calculateOverallAverage(student).toFixed(2)}</p>
                     <p>Rang : ${calculateRanking(student)}</p>
-                    
                 `;
                 studentsContainer.appendChild(card);
             });
@@ -628,9 +662,8 @@
             saveClasses();
         }
 
-        function calculateSubjectAverage(grades){
-           
-            return (grades.controlNote + grades.examNote ) / 3;
+        function calculateSubjectAverage(grades) {
+            return (grades.controlNote + grades.examNote) / 3;
         }
 
         function calculateOverallAverage(student) {
@@ -738,7 +771,10 @@
                         mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     });
                     
-                    saveAs(out, `Bulletins_${currentClass.name}_Trimestre${currentTrimester}.docx`);
+                    const generatedFileName = `Bulletins_${currentClass.name}_${currentTrimester}.docx`;
+                    saveGeneratedFile(out, generatedFileName);
+                    updateFilePreview(generatedFileName);
+                    
                     showToast(`Bulletins générés avec succès pour ${currentClass.students.length} élèves.`, 'success');
                 } catch (error) {
                     console.error('Erreur lors de la génération des bulletins:', error);
@@ -748,15 +784,25 @@
                 }
             }, 1000); // Simule un délai pour montrer le spinner
         }
-        function saveAs(blob, filename) {
-            if (window.navigator && window.navigator.msSaveOrOpenBlob) {
-                window.navigator.msSaveOrOpenBlob(blob, filename);
-            } else {
+
+        function saveGeneratedFile(blob, filename) {
+            generatedFile = new File([blob], filename, { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+        }
+
+        function updateFilePreview(filename) {
+            fileName.textContent = filename;
+            filePreview.style.display = 'block';
+        }
+
+        function downloadGeneratedFile() {
+            if (generatedFile) {
                 const link = document.createElement('a');
-                link.href = window.URL.createObjectURL(blob);
-                link.download = filename;
+                link.href = URL.createObjectURL(generatedFile);
+                link.download = generatedFile.name;
                 link.click();
-                window.URL.revokeObjectURL(link.href);
+                URL.revokeObjectURL(link.href);
+            } else {
+                showToast("Aucun fichier n'a été généré.", 'error');
             }
         }
 
